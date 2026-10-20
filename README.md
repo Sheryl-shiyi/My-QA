@@ -1,9 +1,11 @@
 # My Q&A
 
-Personal Q&A notes for Red Hat AI product questions. All responses are based on publicly available documentation and do not contain any sensitive or customer-specific information.
+A working set of answers to real questions about the Red Hat AI product portfolio. All responses are based on publicly available documentation and do not contain any sensitive or customer-specific information.
 
-## Questions
+## Contents
 
-- [Q1 - Model deployed with custom serving runtime not appearing in Model Registry](Q1-model-deployed-with-custom-runtime-not-in-model-registry.md)
-- [Q2 - External route created via CLI not showing in RHOAI Dashboard](Q2-external-route-not-showing-in-rhoai-dashboard.md)
-- [Q3 - MLflow "workspace context" error in Kubeflow Pipelines](Q3-mlflow-workspace-context-error-in-kubeflow-pipelines.md)
+| Question | Product | What it covers |
+|---|---|---|
+| [Which components of OpenShift AI should we enable?](rhoai-35-which-components-to-enable.md) | OpenShift AI 3.5 | What each DataScienceCluster component does, the console defaults, and the dashboard flags and operator prerequisites that catch people out |
+| [What level of permissions should users have — admin or user?](rhoai-35-admin-or-user-permissions.md) | OpenShift AI 3.5 | Platform user types, group configuration, and project-level roles |
+| [Where should we point users to learn OpenShift AI?](rhoai-35-where-to-point-users.md) | OpenShift AI 3.5 | In-product learning resources, Red Hat Developer learning paths, and the documentation by role and task |

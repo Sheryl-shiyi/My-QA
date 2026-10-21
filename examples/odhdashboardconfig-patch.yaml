@@ -1,0 +1,80 @@
+# =============================================================================
+# OdhDashboardConfig — example patch
+# Red Hat OpenShift AI 3.5
+#
+# Enabling a component in the DataScienceCluster starts its controller, but it
+# does not always make the feature visible in the dashboard. GA features are
+# visible by default; Technology Preview and Developer Preview features are
+# opt-in and hidden until you turn them on here.
+#
+# APPLY THIS AS A MERGE PATCH, not with `oc apply`:
+#
+#   oc patch odhdashboardconfig odh-dashboard-config \
+#     -n redhat-ods-applications --type=merge \
+#     --patch-file=odhdashboardconfig-patch.yaml
+#
+# Why a patch rather than a full CR: the operator maintains other fields on
+# this object — hardwareProfileOrder, notebookController, templateDisablement
+# and templateOrder — even when you never set them. Applying a hand-written
+# full CR that omits those fields will wipe them. A merge patch only touches
+# the keys below.
+#
+# This is safe to re-run.
+# =============================================================================
+
+spec:
+  dashboardConfig:
+
+    # --- Feature Store -----------------------------------------------------
+    # feastoperator is Managed by default, but the admin UI is hidden.
+    featureStoreAdmin: true          # Technology Preview
+
+    # --- TrustyAI ----------------------------------------------------------
+    # Shows Develop & train -> Evaluations. Default is true, i.e. hidden.
+    disableLMEval: false
+
+    # Guardrails configuration in the Gen AI playground.
+    # Requires kserve.rawDeploymentServiceConfig: Headed in the DSC.
+    guardrails: true                 # Technology Preview
+
+    # --- Models-as-a-Service -----------------------------------------------
+    # Needed to see external model endpoints once aigateway is Managed.
+    externalModels: true             # Technology Preview
+
+    # --- Kueue -------------------------------------------------------------
+    # Only meaningful if you set kueue: Unmanaged in the DSC. Default is true,
+    # i.e. hidden. When false, new projects created from the dashboard are
+    # automatically configured for Kueue management.
+    disableKueue: false              # Developer Preview
+
+    # --- Optional ----------------------------------------------------------
+    # Both are Technology Preview and hidden by default. Drop them if you want
+    # a leaner UI.
+    automl: true                     # Automated machine learning
+    autorag: true                    # Automated RAG optimisation
+
+# =============================================================================
+# Deliberately NOT included:
+#
+#   mcpCatalog / mcpRegistry   The MCP Lifecycle Operator requires OpenShift
+#                              4.22 or later. Enabling these flags without it
+#                              surfaces a UI with no working backend. Check
+#                              your version with `oc get clusterversion`.
+#
+#   genAiStudio                Already defaults to true. The Playground item
+#                              additionally needs the OGX Operator installed.
+#
+#   maasAuthPolicies           Deprecated in 3.5 — the reference documentation
+#                              states it has no effect.
+#
+#   modelAsService             Superseded by externalModels for the AI Gateway
+#                              path in 3.5.
+#
+# Verify afterwards:
+#
+#   oc get odhdashboardconfig odh-dashboard-config \
+#     -n redhat-ods-applications -o jsonpath='{.spec.dashboardConfig}' | jq
+#
+# Dashboard changes take effect on reload. Note that when a user's permissions
+# or visible features change, they may need to log out and back in.
+# =============================================================================

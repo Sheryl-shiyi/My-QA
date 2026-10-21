@@ -1,0 +1,216 @@
+# =============================================================================
+# DataScienceCluster — example configuration
+# Red Hat OpenShift AI 3.5
+#
+# This is the CR that OpenShift pre-populates when you click "Create instance"
+# on the DataScienceCluster API. Lines marked KEEP are already the shipped
+# default. Lines marked CHANGED differ from it, and the original value is
+# shown alongside.
+#
+# The configuration below favours breadth, so most components stay enabled.
+#
+#   grep -n CHANGED datasciencecluster-example.yaml
+#
+# -----------------------------------------------------------------------------
+# WHAT DIFFERS FROM THE DEFAULT
+#
+#   kserve.rawDeploymentServiceConfig   Headless  ->  Headed
+#   kueue.managementState               Removed   ->  Unmanaged   (optional)
+#   aigateway.managementState           Removed   ->  Managed     (optional)
+#   aigateway.modelsAsAService          Removed   ->  Managed     (optional)
+#
+# Everything else is left at the default.
+# -----------------------------------------------------------------------------
+#
+# INSTALL THESE OPERATORS FIRST
+#
+#   cert-manager Operator      Required platform-wide in 3.5. KServe, Kueue,
+#                              RayCluster and llm-d all depend on it.
+#   JobSet Operator            Required by `trainer`, which is on by default.
+#                              Without it the trainer never becomes ready.
+#
+# Only if you enable the optional components below:
+#
+#   Red Hat build of Kueue     For `kueue: Unmanaged`. Also needs JobSet.
+#   Red Hat Connectivity Link  For `aigateway`. Install v1.4.x and create a
+#                              `Kuadrant` CR in the kuadrant-system namespace.
+#   NFD + NVIDIA GPU Operator  For `ogx` and for any GPU workload.
+# =============================================================================
+
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+  labels:
+    app.kubernetes.io/name: datasciencecluster
+spec:
+  components:
+
+    # --- Core platform -----------------------------------------------------
+
+    dashboard:
+      managementState: Managed          # KEEP. Effectively mandatory.
+
+    workbenches:
+      managementState: Managed          # KEEP. Jupyter and code-server.
+      workbenchNamespace: rhods-notebooks
+
+    aipipelines:
+      managementState: Managed          # KEEP. Needs an S3 bucket when you
+      argoWorkflowsControllers:         #       create a pipeline server.
+        managementState: Managed        # KEEP. Set Removed only if you run
+                                        #       your own Argo Workflows.
+
+    # --- Model serving -----------------------------------------------------
+
+    kserve:
+      managementState: Managed          # KEEP. Requires cert-manager.
+
+      rawDeploymentServiceConfig: Headed    # ◀── CHANGED. Default: Headless.
+                                        # Guardrails requires Headed, and
+                                        # TrustyAI is enabled by default below.
+                                        # The Workload Variant Autoscaler
+                                        # requires it too. Both Red Hat field
+                                        # GitOps projects for 3.5 override the
+                                        # default in the same way.
+
+      nim:
+        managementState: Managed        # KEEP, but not usable until you also
+        airGapped: false                #       set disableNIMModelServing to
+                                        #       false and supply an NGC API key.
+                                        #       Set Removed if you do not use
+                                        #       NVIDIA NIM.
+      wva:
+        managementState: Removed        # KEEP. Technology Preview, only
+                                        #       relevant with llm-d.
+      modelCache:
+        managementState: Removed        # KEEP.
+      modelsAsService:
+        managementState: Removed        # KEEP. Deprecated, and irreversible
+                                        #       once Removed. Models-as-a-Service
+                                        #       is configured under aigateway.
+
+    # --- Governance and tracking -------------------------------------------
+
+    modelregistry:
+      managementState: Managed          # KEEP. The component becomes ready on
+      registriesNamespace: rhoai-model-registries
+                                        #       its own, but creating a registry
+                                        #       instance needs an external MySQL
+                                        #       (8.x recommended) and S3.
+
+    feastoperator:
+      managementState: Managed          # KEEP. Technology Preview. The admin UI
+                                        #       is hidden until you set
+                                        #       featureStoreAdmin: true in the
+                                        #       dashboard config.
+
+    mlflowoperator:
+      managementState: Managed          # KEEP. You must also create an MLflow
+                                        #       CR to get a tracking server.
+
+    trustyai:
+      managementState: Managed          # KEEP. Bias and drift monitoring,
+      mcpGuardrailsMode: false          #       evaluation and Guardrails.
+      eval:
+        lmeval:
+          permitCodeExecution: deny     # KEEP. Sensible security defaults.
+          permitOnline: deny            #       Leave both as deny.
+
+    # --- Distributed compute -----------------------------------------------
+
+    ray:
+      managementState: Managed          # KEEP.
+
+    trainer:
+      managementState: Managed          # KEEP. Kubeflow Trainer v2, the current
+                                        #       distributed training engine.
+                                        #       REQUIRES the JobSet Operator.
+
+    trainingoperator:
+      managementState: Removed          # KEEP. Kubeflow Training Operator v1 is
+                                        #       deprecated, removed in 3.6, and
+                                        #       excluded from 3.5 EUS.
+
+    kueue:
+      managementState: Unmanaged        # ◀── CHANGED (optional). Default: Removed.
+                                        # Enable to explore workload queuing,
+                                        # quotas and Kueue-enabled hardware
+                                        # profiles. Requires the Red Hat build
+                                        # of Kueue Operator and JobSet.
+                                        # Leave Removed to skip those installs —
+                                        # Ray still works, you just have no
+                                        # queuing or quota.
+                                        # Managed is rejected at runtime; the
+                                        # only valid values are Unmanaged and
+                                        # Removed.
+      autoCreateQueues: false           # KEEP. Set true and the operator creates
+                                        #       a default ClusterQueue and
+                                        #       LocalQueue for you.
+      defaultClusterQueueName: default  # KEEP.
+      defaultLocalQueueName: default    # KEEP.
+
+    # --- Generative AI -----------------------------------------------------
+
+    ogx:
+      managementState: Managed          # KEEP if you have GPU nodes. Open GenAI
+                                        # Stack backs RAG, agents and the Gen AI
+                                        # Playground. Technology Preview.
+                                        # Needs: OGX Operator, Service Mesh 3.x,
+                                        # cert-manager, NFD, NVIDIA GPU Operator,
+                                        # GPU nodes, S3, PostgreSQL 14+.
+                                        # Set Removed on a CPU-only cluster.
+
+    llamastackoperator:
+      managementState: Removed          # KEEP. Superseded by ogx.
+
+    aigateway:
+      managementState: Managed          # ◀── CHANGED (optional). Default: Removed.
+      #
+      # ### This is the only component here that will leave the installation
+      # ### Degraded if its prerequisites are missing. Confirm all four before
+      # ### applying, or leave this set to Removed:
+      # ###   1. Red Hat Connectivity Link Operator v1.4.x installed, and a
+      # ###      `Kuadrant` CR created in kuadrant-system with Ready status
+      # ###   2. User Workload Monitoring enabled on the cluster
+      # ###   3. A PostgreSQL 14+ instance reachable from the cluster network
+      # ###      (OpenShift AI does not provide one)
+      # ###   4. A Gateway API gateway named maas-default-gateway in
+      # ###      openshift-ingress
+      #
+      modelsAsAService:
+        managementState: Managed        # ◀── CHANGED (optional). Default: Removed.
+                                        # Models-as-a-Service: serve models with
+                                        # quotas, API keys and rate limiting.
+      batchGateway:
+        managementState: Removed        # KEEP. OpenAI-compatible batch API.
+                                        #       Technology Preview, needs
+                                        #       Redis/Valkey plus its own
+                                        #       PostgreSQL and S3.
+
+    # --- Left disabled -----------------------------------------------------
+
+    mcplifecycleoperator:
+      managementState: Removed          # KEEP. Technology Preview, and it
+                                        #       requires OpenShift 4.22 or later.
+                                        #       Check before enabling:
+                                        #         oc get clusterversion
+
+    sparkoperator:
+      managementState: Removed          # KEEP unless you need Spark. Support
+                                        #       level is ambiguous in 3.5: the
+                                        #       supported-configurations matrix
+                                        #       lists it, the documentation
+                                        #       calls it Developer Preview.
+
+# =============================================================================
+# After applying, check that everything came up:
+#
+#   oc get datasciencecluster default-dsc \
+#     -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\n"}{end}' \
+#     | grep Ready
+#
+# Any component reporting False either has a missing prerequisite operator or
+# is still reconciling. Then apply the dashboard configuration patch to make
+# the Technology Preview features visible.
+# =============================================================================

@@ -2,7 +2,7 @@
 
 **Applies to:** Red Hat OpenShift AI 3.5 Self-Managed.
 
-Red Hat does not publish a recommended component set. The right configuration depends on what the customer intend to do with the platform.
+Red Hat does not publish a recommended component set. The right configuration depends on what you intend to do with the platform.
 
 ## Where the defaults come from
 
@@ -10,7 +10,7 @@ When you install the operator and click **Create instance** on the DataScienceCl
 
 ![Creating a DataScienceCluster instance from the OpenShift AI operator](./images/create-dsc-instance.png)
 
-The table below shows the default CR from a RHOAI **3.5.1** install, with my comments on each setting.
+The table below shows the default CR from a RHOAI **3.5.1** install, with my comments on each setting. If you would rather start from a worked example than from the table, skip to [Example configuration](#example-configuration).
 
 ## Component reference
 
@@ -59,6 +59,31 @@ The pattern is easy to remember: **GA features default to visible, and Technolog
 ## Operator prerequisites
 
 Several components depend on operators that OpenShift AI doesn't install for you, such as cert-manager, JobSet, Red Hat build of Kueue and Service Mesh 3.x. It's worth checking the [component requirements](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.5/html/installing_and_uninstalling_openshift_ai_self-managed_in_a_disconnected_environment/deploying-openshift-ai-in-a-disconnected-environment_install#component_requirements) before enabling anything new.
+
+## Example configuration
+
+Two ready-to-use files, both annotated:
+
+| File | What it is | How to apply |
+|---|---|---|
+| [`examples/datasciencecluster-example.yaml`](examples/datasciencecluster-example.yaml) | The default CR with every line marked `KEEP` or `CHANGED`, and the original value shown wherever it differs. Only four settings differ from the default, across three components. | `oc apply -f datasciencecluster-example.yaml` |
+| [`examples/odhdashboardconfig-patch.yaml`](examples/odhdashboardconfig-patch.yaml) | The dashboard flags that make the enabled Technology Preview features visible. | See the merge patch command below |
+
+To see at a glance what the example changes:
+
+```bash
+grep -n CHANGED datasciencecluster-example.yaml
+```
+
+Apply the dashboard flags as a **merge patch**, not with `oc apply`:
+
+```bash
+oc patch odhdashboardconfig odh-dashboard-config \
+  -n redhat-ods-applications --type=merge \
+  --patch-file=odhdashboardconfig-patch.yaml
+```
+
+The operator maintains other fields on that object, including `hardwareProfileOrder`, `notebookController`, `templateDisablement` and `templateOrder`, even when you never set them. Applying a hand-written full CR that omits those fields will wipe them, which is why the dashboard configuration is delivered as a patch. The patch is safe to re-run.
 
 ## Read more
 

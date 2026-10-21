@@ -56,9 +56,10 @@ spec:
       workbenchNamespace: rhods-notebooks
 
     aipipelines:
-      managementState: Managed          # KEEP. Needs an S3 bucket when you
-      argoWorkflowsControllers:         #       create a pipeline server.
-        managementState: Managed        # KEEP. Set Removed only if you run
+      managementState: Managed          # KEEP. Needs write access to
+      argoWorkflowsControllers:         #       S3-compatible object storage when
+        managementState: Managed        #       you create a pipeline server.
+                                        # KEEP. Set Removed only if you run
                                         #       your own Argo Workflows.
 
     # --- Model serving -----------------------------------------------------

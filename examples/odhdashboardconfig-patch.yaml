@@ -54,22 +54,6 @@ spec:
     autorag: true                    # Automated RAG optimisation
 
 # =============================================================================
-# Deliberately NOT included:
-#
-#   mcpCatalog / mcpRegistry   The MCP Lifecycle Operator requires OpenShift
-#                              4.22 or later. Enabling these flags without it
-#                              surfaces a UI with no working backend. Check
-#                              your version with `oc get clusterversion`.
-#
-#   genAiStudio                Already defaults to true. The Playground item
-#                              additionally needs the OGX Operator installed.
-#
-#   maasAuthPolicies           Deprecated in 3.5 — the reference documentation
-#                              states it has no effect.
-#
-#   modelAsService             Superseded by externalModels for the AI Gateway
-#                              path in 3.5.
-#
 # Verify afterwards:
 #
 #   oc get odhdashboardconfig odh-dashboard-config \
